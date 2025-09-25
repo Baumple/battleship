@@ -12,6 +12,7 @@
             jdk
             jdt-language-server
             cmake
+            gradle
         ];
       };
     }
