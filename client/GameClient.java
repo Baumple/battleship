@@ -18,6 +18,20 @@ public class GameClient implements Closeable {
         this.name = name;
     }
 
+    public void start() throws ClientException {
+        connect();
+    }
+
+    private void connect() throws ClientException {
+        try {
+            LOG.debug(Level.INFO, "Connecting to game host");
+            socket = new Socket("localhost", 6969);
+        } catch (IOException e) {
+            throw new ClientException(new ClientError.ConnectException(e));
+        }
+
+    }
+
     private void doHandshake() throws ClientException {
         try {
             this.reader = new BufferedReader(new InputStreamReader(socket.getInputStream()));
@@ -37,16 +51,6 @@ public class GameClient implements Closeable {
         } catch (IOException e) {
             throw ClientException.of(new ClientError.ConnectException(e));
         }
-    }
-
-    public void connect() throws ClientException {
-        try {
-            LOG.debug(Level.INFO, "Connecting to game host");
-            socket = new Socket("localhost", 6969);
-        } catch (IOException e) {
-            throw new ClientException(new ClientError.ConnectException(e));
-        }
-
     }
 
     @Override

@@ -3,17 +3,27 @@ import java.io.IOException;
 import java.net.ServerSocket;
 
 public class GameServer implements Closeable {
+    public static final int BOARD_SIZE = 8;
+
     private ServerSocket socket;
 
     private Player player1;
     private Player player2;
 
     public Result<Void, ServerError> start() {
+        var res = connectPlayers();
+        if (res.isError())
+            return res;
+
+        return Result.ok(null);
+    }
+
+    private Result<Void, ServerError> connectPlayers() {
         try {
             socket = new ServerSocket(6969);
             socket.setSoTimeout(10000);
         } catch (IOException e) {
-            return new Result.Error<>(new ServerError.InitError(e));
+            return Result.error(new ServerError.InitError(e));
         }
 
         System.out.println("Waiting for player 1..");
@@ -41,7 +51,7 @@ public class GameServer implements Closeable {
             return Result.error(new ServerError.IOError(e));
         }
 
-        return new Result.Ok<>(null); // ok
+        return Result.ok(null); // ok
     }
 
     @Override

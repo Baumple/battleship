@@ -6,6 +6,9 @@ import java.io.OutputStreamWriter;
 import java.io.PrintWriter;
 import java.net.Socket;
 
+/**
+ * Handles connection with the player client
+ */
 public class Player implements Runnable, Closeable {
     private String name;
 
@@ -13,10 +16,21 @@ public class Player implements Runnable, Closeable {
     private final BufferedReader reader;
     private final PrintWriter writer;
 
+    /**
+     * Player owned ships
+     */
+    private final Board shipBoard;
+    /**
+     * Player attacks
+     */
+    private final Board markerBoard;
+
     public Player(Socket socket) throws IOException {
         this.socket = socket;
         this.reader = new BufferedReader(new InputStreamReader(socket.getInputStream()));
         this.writer = new PrintWriter(new OutputStreamWriter(socket.getOutputStream()));
+        this.shipBoard = new Board(GameServer.BOARD_SIZE);
+        this.markerBoard = new Board(GameServer.BOARD_SIZE);
     }
 
     private Result<Void, ServerError> doHandshake() {
