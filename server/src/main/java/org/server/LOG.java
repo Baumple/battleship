@@ -1,4 +1,4 @@
-package org.example;
+package org.server;
 
 import java.util.logging.Level;
 import java.util.logging.Logger;

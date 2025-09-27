@@ -1,4 +1,4 @@
-package org.example;
+package org.server;
 
 import java.io.Closeable;
 import java.io.IOException;
@@ -17,6 +17,11 @@ public class GameServer implements Closeable {
         if (res.isError())
             return res;
 
+        startGame();
+        return Result.ok(null);
+    }
+
+    private Result<Void, ServerError> startGame() {
         return Result.ok(null);
     }
 
@@ -52,7 +57,6 @@ public class GameServer implements Closeable {
         } catch (IOException e) {
             return Result.error(new ServerError.IOError(e));
         }
-
         return Result.ok(null); // ok
     }
 

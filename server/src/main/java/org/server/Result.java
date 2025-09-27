@@ -1,4 +1,4 @@
-package org.example;
+package org.server;
 
 import java.util.function.Consumer;
 import java.util.function.Function;

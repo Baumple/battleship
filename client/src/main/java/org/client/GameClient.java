@@ -1,6 +1,9 @@
-package org.example;
+package org.client;
 
-import org.example.errorhandling.*;
+import org.client.errorhandling.*;
+
+import org.shared.Ship;
+import org.shared.ShipBoard;
 
 import java.io.BufferedReader;
 import java.io.Closeable;
@@ -11,43 +14,48 @@ import java.io.PrintWriter;
 import java.net.Socket;
 import java.util.logging.Level;
 
+/**
+ * Handles connection to the GameServer.
+ */
 public class GameClient implements Closeable {
-    private final String name;
-
     private Socket socket;
     private BufferedReader reader;
     private PrintWriter writer;
 
+    private String name;
+
+    // private Board board;
+
     public GameClient(String name) {
         this.name = name;
+        // this.board = new Board(Board.DEFAULT_BOARD_SIZE);
     }
 
-    public void start() throws ClientException {
-        connect();
+    public void constructBoard() {
+        ShipBoard board = new ShipBoard(ShipBoard.DEFAULT_BOARD_SIZE, new Ship[] {
+                new Ship(0, 0, 5, Ship.Orientation.Horizontal),
+                new Ship(0, 1, 4, Ship.Orientation.Horizontal),
+                new Ship(0, 2, 3, Ship.Orientation.Horizontal),
+                new Ship(0, 3, 2, Ship.Orientation.Horizontal),
+                new Ship(0, 4, 1, Ship.Orientation.Horizontal),
+        });
+        board.printBoard();
     }
 
-    private void connect() throws ClientException {
+    public void connectToServer() throws ClientException {
         try {
             LOG.debug(Level.INFO, "Connecting to game host");
             socket = new Socket("localhost", 6969);
         } catch (IOException e) {
             throw new ClientException(new ClientError.ServerConnectError(e));
         }
-        doHandshake();
+        performHandshake();
 
-        try {
-            // Send information
-            LOG.debug(Level.INFO, "Exchanging properties.");
-            var props = new java.util.Properties();
-            props.setProperty("player-name", name);
-            props.store(writer, null);
-
-        } catch (IOException e) {
-            throw ClientException.of(new ClientError.ExchangeError(e));
-        }
+        LOG.debug(Level.INFO, "Exchanging game information.");
+        writer.println(name);
     }
 
-    private void doHandshake() throws ClientException {
+    private void performHandshake() throws ClientException {
         try {
             this.reader = new BufferedReader(new InputStreamReader(socket.getInputStream()));
             this.writer = new PrintWriter(new OutputStreamWriter(socket.getOutputStream()));
@@ -60,7 +68,6 @@ public class GameClient implements Closeable {
             writer.println("OK");
 
             LOG.debug(Level.INFO, "Handshake successful.");
-            writer.println(name);
             writer.flush();
 
         } catch (IOException e) {
@@ -70,8 +77,6 @@ public class GameClient implements Closeable {
 
     @Override
     public void close() throws IOException {
-        this.reader.close();
-        this.writer.close();
-        this.socket.close();
+        this.socket.close(); // also closes in/output streams
     }
 }

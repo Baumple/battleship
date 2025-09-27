@@ -1,6 +1,6 @@
-package org.example;
+package org.client;
 
-import org.example.errorhandling.*;
+import org.client.errorhandling.*;
 
 import java.io.IOException;
 import java.util.logging.Level;
@@ -16,8 +16,10 @@ class Main {
         LOG.debug(Level.INFO, "Starting client");
 
         try (var client = new GameClient(args[0])) {
-            client.start();
+            client.connectToServer();
+            client.constructBoard();
         } catch (ClientException e) {
+
             handleException(e);
         } catch (IOException e) {
             e.printStackTrace();

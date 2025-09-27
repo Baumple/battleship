@@ -1,4 +1,4 @@
-package org.example.errorhandling;
+package org.client.errorhandling;
 
 import java.io.IOException;
 

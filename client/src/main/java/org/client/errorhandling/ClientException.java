@@ -1,4 +1,4 @@
-package org.example.errorhandling;
+package org.client.errorhandling;
 
 public class ClientException extends Exception {
     public final ClientError error;
