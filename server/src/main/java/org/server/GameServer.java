@@ -47,10 +47,10 @@ public class GameServer implements Closeable {
 
             var s2 = socket.accept();
             switch (Player.fromSocket(s2)) {
-                case Result.Error<Player, ServerError> e:
-                    return e.convert();
-                case Result.Ok<Player, ServerError> player:
-                    this.player2 = player.value();
+            case Result.Error<Player, ServerError> e:
+                return e.convert();
+            case Result.Ok<Player, ServerError> player:
+                this.player2 = player.value();
             }
             System.out.println("Player 2 '%s' connected!".formatted(player2.getName()));
 

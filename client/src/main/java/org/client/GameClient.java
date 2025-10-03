@@ -3,8 +3,6 @@ package org.client;
 import org.client.errorhandling.*;
 
 import org.shared.Ship;
-import org.shared.ShipBoard;
-
 import java.io.BufferedReader;
 import java.io.Closeable;
 import java.io.IOException;
@@ -24,22 +22,21 @@ public class GameClient implements Closeable {
 
     private String name;
 
-    // private Board board;
+    private final Ship[] ships;
 
-    public GameClient(String name) {
+    public GameClient(String name, Ship[] ships) {
         this.name = name;
-        // this.board = new Board(Board.DEFAULT_BOARD_SIZE);
+        if (ships.length != 5) {
+        }
+        this.ships = ships;
     }
 
-    public void constructBoard() {
-        ShipBoard board = new ShipBoard(ShipBoard.DEFAULT_BOARD_SIZE, new Ship[] {
-                new Ship(0, 0, 5, Ship.Orientation.Horizontal),
-                new Ship(0, 1, 4, Ship.Orientation.Horizontal),
-                new Ship(0, 2, 3, Ship.Orientation.Horizontal),
-                new Ship(0, 3, 2, Ship.Orientation.Horizontal),
-                new Ship(0, 4, 1, Ship.Orientation.Horizontal),
-        });
-        board.printBoard();
+    private boolean registerHit(int x, int y) {
+        for (var ship : ships)
+            if (ship.registerHit(x, y)) {
+                return true;
+            }
+        return false;
     }
 
     public void connectToServer() throws ClientException {
