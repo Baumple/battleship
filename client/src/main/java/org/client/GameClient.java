@@ -2,7 +2,10 @@ package org.client;
 
 import org.client.errorhandling.*;
 
-import org.shared.Ship;
+import org.shared.ShipBoard;
+import org.shared.MarkerBoard;
+import org.shared.LOG;
+
 import java.io.BufferedReader;
 import java.io.Closeable;
 import java.io.IOException;
@@ -11,6 +14,8 @@ import java.io.OutputStreamWriter;
 import java.io.PrintWriter;
 import java.net.Socket;
 import java.util.logging.Level;
+
+import static org.shared.Constants.NUM_SHIPS;
 
 /**
  * Handles connection to the GameServer.
@@ -22,21 +27,13 @@ public class GameClient implements Closeable {
 
     private String name;
 
-    private final Ship[] ships;
+    private final ShipBoard shipBoard;
+    private final MarkerBoard markerBoard;
 
-    public GameClient(String name, Ship[] ships) {
+    public GameClient(String name, ShipBoard board) {
         this.name = name;
-        if (ships.length != 5) {
-        }
-        this.ships = ships;
-    }
-
-    private boolean registerHit(int x, int y) {
-        for (var ship : ships)
-            if (ship.registerHit(x, y)) {
-                return true;
-            }
-        return false;
+        this.shipBoard = board;
+        this.markerBoard = new MarkerBoard();
     }
 
     public void connectToServer() throws ClientException {
@@ -50,6 +47,11 @@ public class GameClient implements Closeable {
 
         LOG.debug(Level.INFO, "Exchanging game information.");
         writer.println(name);
+
+        writer.println(shipBoard.encode());
+        writer.println("END");
+        writer.flush();
+
     }
 
     private void performHandshake() throws ClientException {

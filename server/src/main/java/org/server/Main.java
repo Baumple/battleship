@@ -28,7 +28,7 @@ public class Main {
                         + e.exception().getMessage());
 
             case ServerError.ClientPropertyError e ->
-                System.out.println("Invalid properties received from Client");
+                System.out.println("Invalid properties received from Client" + e.msg());
 
             case ServerError.IOError e ->
                 System.out.println("Communication error: "

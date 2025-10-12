@@ -2,6 +2,16 @@ package org.server;
 
 import java.io.IOException;
 
+/**
+ * Various errors that may occur during server operation.
+ *
+ * @see InitError
+ * @see IOError
+ * @see ClientConnectError
+ * @see ClientPropertyError
+ * @see InvalidHandshake
+ * @see ClientPropertyError
+ */
 public sealed interface ServerError permits
         ServerError.InitError,
         ServerError.IOError,
@@ -32,13 +42,17 @@ public sealed interface ServerError permits
     }
 
     /**
-     * Error hat is returned when the client did not send OK
+     * A property was missing/invalid during inital information exchange
+     * between server and client.
      */
-    public record InvalidHandshake()
+    public record ClientPropertyError(String msg)
             implements ServerError {
     }
 
-    public record ClientPropertyError(String msg)
+    /**
+     * Error hat is returned when the client did not send OK
+     */
+    public record InvalidHandshake()
             implements ServerError {
     }
 

@@ -7,7 +7,13 @@ import java.io.InputStreamReader;
 import java.io.OutputStreamWriter;
 import java.io.PrintWriter;
 import java.net.Socket;
-import java.util.Properties;
+import java.util.logging.Level;
+
+import org.shared.LOG;
+import org.shared.ShipBoard;
+import org.shared.Ship;
+
+import static org.shared.Constants.NUM_SHIPS;
 
 /**
  * Handles connection with the player client
@@ -19,19 +25,11 @@ public class Player implements Runnable, Closeable {
     private final BufferedReader reader;
     private final PrintWriter writer;
 
-    /**
-     * Player owned ships
-     */
-    /**
-     * Player attacks
-     */
-    {
-    }
+    private ShipBoard shipBoard;
 
     public String getName() {
         return name;
     }
-
 
     public Player(Socket socket) throws IOException {
         this.socket = socket;
@@ -64,25 +62,42 @@ public class Player implements Runnable, Closeable {
             return res;
         System.out.println("Handshake ok");
 
-        readProperties();
-
-        return Result.ok(null);
+        switch (readPlayerInfo()) {
+            case Result.Error<Void, ServerError> e -> {
+                return e;
+            }
+            case Result.Ok<Void, ServerError> o -> {
+                return o;
+            }
+        }
     }
 
-    private Result<Void, ServerError> readProperties() {
+    // name
+    // ships
+    private Result<Void, ServerError> readPlayerInfo() {
         try {
-            var props = new Properties();
-            props.load(reader);
-            var name = props.getProperty("player-name");
-            if (name == null)
-                return Result.error(
-                        new ServerError.ClientPropertyError(
-                                "Missing property 'player-name'"));
-            this.name = name;
+            LOG.debug(Level.INFO, "Exchanging game information.");
+            this.name = reader.readLine();
+
+            var shipBlock = new StringBuilder();
+            String line = reader.readLine();
+            while (!line.equals("END")) {
+                shipBlock.append(line);
+                line = reader.readLine();
+            }
+
+            LOG.debug(Level.INFO, "Received ship placement");
+            this.shipBoard = ShipBoard.decode(shipBlock.toString());
 
         } catch (IOException e) {
             return Result.error(new ServerError.IOError(e));
+        } catch (IllegalArgumentException e) {
+            return Result
+                    .error(new ServerError.ClientPropertyError(
+                            "Invalid ship placement: " + e.getMessage().toString()));
         }
+
+        this.shipBoard.printBoard();
 
         return Result.ok(null);
     }

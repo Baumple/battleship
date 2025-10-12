@@ -1,4 +1,4 @@
-package org.client;
+package org.shared;
 
 import java.util.logging.Level;
 import java.util.logging.Logger;
@@ -12,7 +12,7 @@ public class LOG {
     }
 
     public static void debug(Level level, String msg) {
-        if(debugEnabled) {
+        if (debugEnabled) {
             LOG.log(level, msg, "");
         }
     }

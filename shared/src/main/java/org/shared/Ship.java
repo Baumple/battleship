@@ -3,7 +3,14 @@ package org.shared;
 public class Ship {
     public enum Orientation {
         Vertical,
-        Horizontal,
+        Horizontal;
+
+        public char encode() {
+            return switch (this) {
+                case Vertical -> 'v';
+                case Horizontal -> 'h';
+            };
+        }
     }
 
     private final int x;
@@ -55,6 +62,37 @@ public class Ship {
         };
     }
 
+    public String encode() {
+        return "%d,%d,%d,%c".formatted(getX(), getY(), getLength(), getOrientation().encode());
+    }
+
+    // INFO: Assumes encoded Ship is valid
+    public static Ship decode(String encoded) throws IllegalArgumentException, NumberFormatException {
+        encoded = encoded.trim();
+
+        var split = encoded.split(",");
+        if (split.length != 4)
+            throw new IllegalArgumentException("Invalid ship encoding");
+
+        var x = split[0];
+        var y = split[1];
+        var l = split[2];
+        Ship.Orientation o;
+        switch (split[3]) {
+            case "h" -> o = Ship.Orientation.Horizontal;
+            case "v" -> o = Ship.Orientation.Vertical;
+            default ->
+                throw new IllegalArgumentException(
+                        "Invalid orientation encountered while parsing ships.");
+        }
+
+        return new Ship(
+                Integer.parseInt(x),
+                Integer.parseInt(y),
+                Integer.parseInt(l),
+                o);
+    }
+
     public int getX() {
         return x;
     }
@@ -67,7 +105,7 @@ public class Ship {
         return length;
     }
 
-    public Orientation getO() {
+    public Orientation getOrientation() {
         return o;
     }
 }
