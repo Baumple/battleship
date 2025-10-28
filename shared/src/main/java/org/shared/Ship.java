@@ -108,4 +108,14 @@ public class Ship {
     public Orientation getOrientation() {
         return o;
     }
+
+    public char getCellAt(int x, int y) {
+        return switch (o) {
+            case Orientation.Vertical ->
+                segments[y - this.y];
+            case Orientation.Horizontal ->
+                segments[x - this.x];
+        } ? 'O' : 'X';
+    }
+
 }

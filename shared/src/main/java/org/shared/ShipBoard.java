@@ -44,6 +44,15 @@ public class ShipBoard {
         return hasShipAt(ships, x, y);
     }
 
+    public Ship getShipAt(int x, int y) {
+        for (var ship : ships) {
+            if (ship.isAt(x, y)) {
+                return ship;
+            }
+        }
+        return null;
+    }
+
     private static int promptInt(Scanner scanner, String prompt) {
         while (true) {
             System.out.print(prompt);
@@ -98,14 +107,23 @@ public class ShipBoard {
     }
 
     private static boolean hasOverlap(Ship[] ships, Ship ship) {
-        return hasOverlap(ships, ship.getX(), ship.getY(), ship.getLength(), ship.getOrientation());
+        return hasOverlap(
+                ships,
+                ship.getX(),
+                ship.getY(),
+                ship.getLength(),
+                ship.getOrientation());
     }
 
     /**
      * Checks whether the ship fits into the board.
      */
     private static boolean isWithinBounds(Ship ship) {
-        return isWithinBounds(ship.getX(), ship.getY(), ship.getLength(), ship.getOrientation());
+        return isWithinBounds(
+                ship.getX(),
+                ship.getY(),
+                ship.getLength(),
+                ship.getOrientation());
     }
 
     private static boolean isWithinBounds(int x, int y, int length, Ship.Orientation o) {
@@ -235,9 +253,11 @@ public class ShipBoard {
         for (int y = 0; y < BOARD_WIDTH; y++) {
             boardStr.append("%d |".formatted(y + 1));
             for (int x = 0; x < BOARD_WIDTH; x++) {
-                if (this.hasShipAt(x, y))
-                    boardStr.append(" X |");
-                else
+                Ship s = this.getShipAt(x, y);
+                if (s != null) {
+                    var cell = s.getCellAt(x, y);
+                    boardStr.append(" %c |".formatted(cell));
+                } else
                     boardStr.append("   |");
             }
             boardStr.append('\n');

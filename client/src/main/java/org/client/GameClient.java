@@ -15,8 +15,6 @@ import java.io.PrintWriter;
 import java.net.Socket;
 import java.util.logging.Level;
 
-import static org.shared.Constants.NUM_SHIPS;
-
 /**
  * Handles connection to the GameServer.
  */
