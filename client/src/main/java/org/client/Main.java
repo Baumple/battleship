@@ -24,7 +24,7 @@ class Main {
             var board = ShipBoard.fromUserInput(scanner);
             var client = new GameClient(args[0], board);
 
-            client.connectToServer();
+            client.start(scanner);
 
             scanner.close();
             client.close();
@@ -34,7 +34,7 @@ class Main {
             e.printStackTrace();
         } catch (Exception e) {
             handleException(ClientException.of(new ClientError.UserIOError(e)));
-        }  
+        }
     }
 
     private static void handleException(ClientException e) {
@@ -53,6 +53,9 @@ class Main {
 
             case ClientError.UserIOError u ->
                 System.err.println("Error while reading user input from stdin" + u.e().getMessage());
+
+            case ClientError.IOError i ->
+                System.err.println("Error while communicating with server: " + i.e().getMessage());
         }
     }
 }

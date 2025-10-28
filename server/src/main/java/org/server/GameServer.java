@@ -23,6 +23,8 @@ public class GameServer implements Closeable {
     }
 
     private Result<Void, ServerError> startGame() {
+        var move = player1.getMove();
+        var isHit = player2.sendMove(move);
         throw new UnsupportedOperationException("startGame not implemented.");
         // return Result.ok(null);
     }

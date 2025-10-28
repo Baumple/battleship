@@ -26,7 +26,6 @@ public class MarkerBoard {
 
     @Override
     public String toString() {
-        final int colWidth = 3;
         var boardStr = new StringBuilder();
 
         boardStr.append("  ");

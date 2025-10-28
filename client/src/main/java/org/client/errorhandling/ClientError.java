@@ -7,7 +7,8 @@ public sealed interface ClientError permits
         ClientError.InitError,
         ClientError.InvalidHandshake,
         ClientError.ExchangeError,
-        ClientError.UserIOError {
+        ClientError.UserIOError,
+        ClientError.IOError {
 
     /*
      * Failed to initialize socket.
@@ -37,6 +38,9 @@ public sealed interface ClientError permits
      * Error while reading user input via a Scanner
      */
     public record UserIOError(Exception e) implements ClientError {
+    }
+
+    public record IOError(IOException e) implements ClientError {
     }
 
     default ClientException asException() {

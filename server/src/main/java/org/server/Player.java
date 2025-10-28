@@ -11,9 +11,9 @@ import java.util.logging.Level;
 
 import org.shared.LOG;
 import org.shared.ShipBoard;
-import org.shared.Ship;
 
 import static org.shared.Constants.NUM_SHIPS;
+import static org.shared.Constants.BOARD_WIDTH;
 
 /**
  * Handles connection with the player client
@@ -34,14 +34,13 @@ public class Player implements Runnable, Closeable {
     public Player(Socket socket) throws IOException {
         this.socket = socket;
         this.reader = new BufferedReader(new InputStreamReader(socket.getInputStream()));
-        this.writer = new PrintWriter(new OutputStreamWriter(socket.getOutputStream()));
+        this.writer = new PrintWriter(new OutputStreamWriter(socket.getOutputStream()), true);
     }
 
     private Result<Void, ServerError> doHandshake() {
         System.out.println("Performing handshake.");
         try {
             writer.println("OK");
-            writer.flush();
 
             System.out.println("Sent OK. Waiting for OK.");
 
@@ -108,7 +107,6 @@ public class Player implements Runnable, Closeable {
             System.out.println("Created player object.");
             return player.connect()
                     .mapOk(x -> player);
-
         } catch (IOException e) {
             return Result.error(new ServerError.ClientConnectError(e));
         }
@@ -127,6 +125,51 @@ public class Player implements Runnable, Closeable {
     @Override
     public String toString() {
         return "Player { name: %s }".formatted(this.name);
+    }
+
+    // MOVE x y
+    public record Move(int x, int y) {
+        public static Move parse(String line) throws IllegalArgumentException {
+            var split = line.trim().split(" ");
+            int x, y;
+            try {
+                x = Integer.parseInt(split[1]);
+                y = Integer.parseInt(split[2]);
+            } catch (Exception e) {
+                throw new IllegalArgumentException(e.getMessage());
+            }
+            if (!(0 <= x && x < BOARD_WIDTH)) {
+                throw new IllegalArgumentException("x is out of bounds");
+            }
+            if (!(0 <= x && x < BOARD_WIDTH)) {
+                throw new IllegalArgumentException("y is out of bounds");
+            }
+            return new Move(x, y);
+        }
+
+        public String encode() {
+            return "MOVE %d %d".formatted(x, y);
+        }
+    }
+
+    public Result<Move, ServerError> getMove() {
+        try {
+            writer.println("SEND MOVE");
+            return Result.ok(Move.parse(reader.readLine()));
+        } catch (IOException e) {
+            return Result.error(new ServerError.IOError(e));
+        } catch (IllegalArgumentException e) {
+            writer.println("ERROR: Received invalid move");
+            return Result.error(new ServerError.InvalidMoveReceived(e));
+        }
+    }
+
+    public Result<Boolean, ServerError> sendUpdate(Move m) {
+        var isHit = shipBoard.registerHit(m.x(), m.y());
+        writer.println("UPDATE");
+        writer.println(shipBoard.toString());
+        writer.println("END");
+        return Result.ok(isHit);
     }
 
 }

@@ -13,6 +13,7 @@ import java.io.InputStreamReader;
 import java.io.OutputStreamWriter;
 import java.io.PrintWriter;
 import java.net.Socket;
+import java.util.Scanner;
 import java.util.logging.Level;
 
 /**
@@ -25,16 +26,39 @@ public class GameClient implements Closeable {
 
     private String name;
 
-    private final ShipBoard shipBoard;
     private final MarkerBoard markerBoard;
 
     public GameClient(String name, ShipBoard board) {
         this.name = name;
-        this.shipBoard = board;
         this.markerBoard = new MarkerBoard();
     }
 
-    public void connectToServer() throws ClientException {
+    public void start(Scanner scanner) throws ClientException {
+        try {
+            var board = ShipBoard.fromUserInput(scanner);
+        } catch (Exception e) {
+
+        }
+        connectToServer(board);
+        gameLoop();
+    }
+
+    private void gameLoop() throws ClientException {
+        var instruction = reader.readLine();
+        if (instruction.equals("UPDATE")) {
+            System.out.println(receiveUpdatedBoard());
+        }
+    }
+
+    private String readLine() throws ClientException {
+        try {
+            return reader.readLine();
+        } catch (IOException e) {
+            throw ClientException.of(new ClientError.IOError(e));
+        }
+    }
+
+    public void connectToServer(ShipBoard board) throws ClientException {
         try {
             LOG.debug(Level.INFO, "Connecting to game host");
             socket = new Socket("localhost", 6969);
@@ -46,16 +70,17 @@ public class GameClient implements Closeable {
         LOG.debug(Level.INFO, "Exchanging game information.");
         writer.println(name);
 
-        writer.println(shipBoard.encode());
+        writer.println(board.encode());
         writer.println("END");
-        writer.flush();
 
     }
 
     private void performHandshake() throws ClientException {
         try {
             this.reader = new BufferedReader(new InputStreamReader(socket.getInputStream()));
-            this.writer = new PrintWriter(new OutputStreamWriter(socket.getOutputStream()));
+            this.writer = new PrintWriter(
+                    new OutputStreamWriter(socket.getOutputStream()),
+                    true);
 
             LOG.debug(Level.INFO, "Performing Handshake");
             var msg = reader.readLine();
@@ -69,6 +94,20 @@ public class GameClient implements Closeable {
 
         } catch (IOException e) {
             throw ClientException.of(new ClientError.ServerConnectError(e));
+        }
+    }
+
+    private String receiveUpdatedBoard() throws ClientException {
+        try {
+            var line = reader.readLine();
+            assert line.equals("UPDATE");
+            var boardStr = new StringBuilder();
+            while (!line.equals("END"))
+                boardStr.append(line);
+
+            return boardStr.toString();
+        } catch (IOException e) {
+            throw ClientException.of(new ClientError.InitError(e));
         }
     }
 

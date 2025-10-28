@@ -17,7 +17,8 @@ public sealed interface ServerError permits
         ServerError.IOError,
         ServerError.ClientConnectError,
         ServerError.ClientPropertyError,
-        ServerError.InvalidHandshake {
+        ServerError.InvalidHandshake,
+        ServerError.InvalidMoveReceived {
 
     /**
      * Error that is returned when the ServerSocket failed to initialize.
@@ -53,6 +54,10 @@ public sealed interface ServerError permits
      * Error hat is returned when the client did not send OK
      */
     public record InvalidHandshake()
+            implements ServerError {
+    }
+
+    public record InvalidMoveReceived(IllegalArgumentException exception)
             implements ServerError {
     }
 
