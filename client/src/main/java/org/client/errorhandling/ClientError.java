@@ -5,10 +5,11 @@ import java.io.IOException;
 public sealed interface ClientError permits
         ClientError.ServerConnectError,
         ClientError.InitError,
-        ClientError.InvalidHandshake,
-        ClientError.ExchangeError,
+        ClientError.InvalidHandshakeError,
         ClientError.UserIOError,
-        ClientError.IOError {
+        ClientError.IOError,
+        ClientError.UnknownInstructionError,
+        ClientError.LostConnectionError {
 
     /*
      * Failed to initialize socket.
@@ -25,13 +26,11 @@ public sealed interface ClientError permits
     /*
      * Received an invalid handshake.
      */
-    public record InvalidHandshake() implements ClientError {
+    public record InvalidHandshakeError() implements ClientError {
     }
 
-    /*
-     * Error that may occur when exchanging initial game state.
-     */
-    public record ExchangeError(IOException e) implements ClientError {
+    public record UnknownInstructionError(String instruction)
+            implements ClientError {
     }
 
     /*
@@ -45,5 +44,8 @@ public sealed interface ClientError permits
 
     default ClientException asException() {
         return new ClientException(this);
+    }
+
+    public record LostConnectionError() implements ClientError {
     }
 }

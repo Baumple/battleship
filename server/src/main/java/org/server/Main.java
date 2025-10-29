@@ -2,8 +2,13 @@ package org.server;
 
 import java.io.IOException;
 
+import org.server.errorhandling.ServerError;
+
+import org.shared.LOG;
+
 public class Main {
     public static void main(String[] args) {
+        LOG.setDebug(true);
         // wrapping it in order to catch any
         // exceptions.
         try (var server = new GameServer()) {

@@ -3,8 +3,17 @@ package org.client;
 import org.client.errorhandling.*;
 
 import org.shared.ShipBoard;
-import org.shared.MarkerBoard;
+import org.shared.Move;
 import org.shared.LOG;
+
+import static org.shared.Utils.printError;
+import static org.shared.Utils.promptBoolean;
+import static org.shared.Utils.printColoredInformation;
+import static org.shared.Utils.printColored;
+import static org.shared.Utils.promptInt;
+import static org.shared.Utils.Color;
+
+import static org.shared.Constants.BOARD_WIDTH;
 
 import java.io.BufferedReader;
 import java.io.Closeable;
@@ -24,33 +33,123 @@ public class GameClient implements Closeable {
     private BufferedReader reader;
     private PrintWriter writer;
 
+    private Scanner scanner;
+
     private String name;
 
     private final MarkerBoard markerBoard;
 
-    public GameClient(String name, ShipBoard board) {
+    public GameClient(String name) {
         this.name = name;
         this.markerBoard = new MarkerBoard();
     }
 
     public void start(Scanner scanner) throws ClientException {
-        try {
-            var board = ShipBoard.fromUserInput(scanner);
-        } catch (Exception e) {
+        this.scanner = scanner;
+        var board = ShipBoard.fromUserInput(scanner);
 
-        }
         connectToServer(board);
+        System.out.println("Waiting for server to start the game.");
         gameLoop();
+        disconnectFromServer();
     }
 
     private void gameLoop() throws ClientException {
-        var instruction = reader.readLine();
-        if (instruction.equals("UPDATE")) {
-            System.out.println(receiveUpdatedBoard());
+        System.out.println("The game begins!");
+
+        while (true) {
+            var instruction = readLineOrThrow();
+            if (instruction == null) {
+                printError("Lost connection to server..");
+                return;
+            }
+            switch (instruction) {
+                case "UPDATE" ->
+                    handleUpdateBoard();
+                case "SEND MOVE" -> handleSendMove();
+                case "AWAIT MOVE" -> handleAwaitMove();
+                case "DEFEAT" -> {
+                    handleDefeat();
+                    return;
+                }
+                case "WIN" -> {
+                    handleWin();
+                    return;
+                }
+                default -> {
+                    printError("Invalid instruction received: '%s'".formatted(instruction));
+                    throw ClientException.of(new ClientError.UnknownInstructionError(instruction));
+                }
+            }
         }
     }
 
-    private String readLine() throws ClientException {
+    private void handleDefeat() {
+        System.out.println("You have lost..");
+    }
+
+    private void handleAwaitMove() {
+        printColoredInformation("Enemy's turn.", Color.RED);
+    }
+
+    private void handleWin() {
+        System.out.println("You have won!!!");
+    }
+
+    private void handleSendMove() throws ClientException {
+        var move = promptMove();
+        writer.println(move.encode());
+        MarkerBoard.Marker marker;
+
+        if (receiveMoveResult()) {
+            printColored("You hit!!", Color.GREEN);
+            marker = MarkerBoard.Marker.Hit;
+        } else {
+            printColored("You missed..", Color.RED);
+            marker = MarkerBoard.Marker.Miss;
+        }
+        markerBoard.placeMarker(move.x(), move.y(), marker);
+    }
+
+    private void handleUpdateBoard() throws ClientException {
+        var boardStr = new StringBuilder();
+        String line;
+        while (!(line = readLineOrThrow()).equals("END"))
+            boardStr.append(line + "\n");
+
+        printColoredInformation("Your board:", Color.GREEN);
+        System.out.println(boardStr.toString());
+    }
+
+    private boolean receiveMoveResult() throws ClientException {
+        return readLineOrThrow().equals("HIT");
+    }
+
+    private Move promptMove() {
+        printColoredInformation("Your turn! Enter a move.", Color.GREEN);
+        System.out.println(markerBoard.toString());
+        int x, y = -1;
+
+        while (true) {
+            x = promptInt(scanner, "Enter column: ") - 1;
+            if (0 <= x && x < BOARD_WIDTH) {
+                break;
+            }
+            printError("x is out of bounds");
+        }
+
+        while (true) {
+            y = promptInt(scanner, "Enter row: ") - 1;
+            if (0 <= y && y < BOARD_WIDTH) {
+                break;
+            }
+            printError("y is out of bounds");
+        }
+
+        return new Move(x, y);
+    }
+
+    private String readLineOrThrow() throws ClientException {
         try {
             return reader.readLine();
         } catch (IOException e) {
@@ -58,12 +157,26 @@ public class GameClient implements Closeable {
         }
     }
 
-    public void connectToServer(ShipBoard board) throws ClientException {
+    private void disconnectFromServer() throws ClientException {
         try {
-            LOG.debug(Level.INFO, "Connecting to game host");
-            socket = new Socket("localhost", 6969);
+            this.close();
         } catch (IOException e) {
-            throw new ClientException(new ClientError.ServerConnectError(e));
+            throw ClientException.of(new ClientError.IOError(e));
+        }
+    }
+
+    private void connectToServer(ShipBoard board) throws ClientException {
+        while (true) {
+            try {
+                LOG.debug(Level.INFO, "Connecting to game host");
+                socket = new Socket("localhost", 6969);
+                break;
+            } catch (IOException e) {
+                printError("There was an error while connecting to the server.");
+                if (!promptBoolean(scanner, "Do you want to try again?")) {
+                    throw new ClientException(new ClientError.ServerConnectError(e));
+                }
+            }
         }
         performHandshake();
 
@@ -85,7 +198,7 @@ public class GameClient implements Closeable {
             LOG.debug(Level.INFO, "Performing Handshake");
             var msg = reader.readLine();
             if (!msg.equals("OK")) {
-                throw ClientException.of(new ClientError.InvalidHandshake());
+                throw ClientException.of(new ClientError.InvalidHandshakeError());
             }
             writer.println("OK");
 
@@ -94,20 +207,6 @@ public class GameClient implements Closeable {
 
         } catch (IOException e) {
             throw ClientException.of(new ClientError.ServerConnectError(e));
-        }
-    }
-
-    private String receiveUpdatedBoard() throws ClientException {
-        try {
-            var line = reader.readLine();
-            assert line.equals("UPDATE");
-            var boardStr = new StringBuilder();
-            while (!line.equals("END"))
-                boardStr.append(line);
-
-            return boardStr.toString();
-        } catch (IOException e) {
-            throw ClientException.of(new ClientError.InitError(e));
         }
     }
 

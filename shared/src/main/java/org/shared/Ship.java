@@ -62,6 +62,14 @@ public class Ship {
         };
     }
 
+    public boolean isAlive() {
+        for (int i = 0; i < segments.length; i++) {
+            if (!segments[i])
+                return true;
+        }
+        return false;
+    }
+
     public String encode() {
         return "%d,%d,%d,%c".formatted(getX(), getY(), getLength(), getOrientation().encode());
     }

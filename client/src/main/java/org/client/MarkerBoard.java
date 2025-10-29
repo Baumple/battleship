@@ -1,4 +1,4 @@
-package org.shared;
+package org.client;
 
 import static org.shared.Constants.BOARD_WIDTH;
 

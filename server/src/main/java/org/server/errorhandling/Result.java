@@ -1,4 +1,4 @@
-package org.server;
+package org.server.errorhandling;
 
 import java.util.function.Consumer;
 import java.util.function.Function;
@@ -45,6 +45,13 @@ public sealed interface Result<T, R> permits Result.Ok, Result.Error {
 
     default boolean isOk() {
         return this instanceof Result.Ok<T, R>;
+    }
+
+    default <S> Result<S, R> then(Function<T, Result<S, R>> f) {
+        return switch (this) {
+            case Result.Error(R error) -> Result.error(error);
+            case Result.Ok(T value) -> f.apply(value);
+        };
     }
 
     default <S> Result<S, R> mapOk(Function<T, S> f) {

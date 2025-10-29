@@ -9,11 +9,12 @@ import java.io.PrintWriter;
 import java.net.Socket;
 import java.util.logging.Level;
 
+import org.server.errorhandling.Result;
+import org.server.errorhandling.ServerError;
+
 import org.shared.LOG;
 import org.shared.ShipBoard;
-
-import static org.shared.Constants.NUM_SHIPS;
-import static org.shared.Constants.BOARD_WIDTH;
+import org.shared.Move;
 
 /**
  * Handles connection with the player client
@@ -31,23 +32,23 @@ public class Player implements Runnable, Closeable {
         return name;
     }
 
-    public Player(Socket socket) throws IOException {
+    private Player(Socket socket) throws IOException {
         this.socket = socket;
         this.reader = new BufferedReader(new InputStreamReader(socket.getInputStream()));
         this.writer = new PrintWriter(new OutputStreamWriter(socket.getOutputStream()), true);
     }
 
     private Result<Void, ServerError> doHandshake() {
-        System.out.println("Performing handshake.");
+        LOG.debug(Level.INFO, "Performing handshake.");
         try {
             writer.println("OK");
 
-            System.out.println("Sent OK. Waiting for OK.");
+            LOG.debug(Level.INFO, "Sent OK. Waiting for OK.");
 
             if (!reader.readLine().equals("OK")) {
                 return Result.error(new ServerError.InvalidHandshake());
             }
-            System.out.println("Received OK. Handshake done.");
+            LOG.debug(Level.INFO, "Received OK. Handshake done.");
 
         } catch (IOException e) {
             return Result.error(new ServerError.IOError(e));
@@ -96,8 +97,6 @@ public class Player implements Runnable, Closeable {
                             "Invalid ship placement: " + e.getMessage().toString()));
         }
 
-        this.shipBoard.printBoard();
-
         return Result.ok(null);
     }
 
@@ -109,46 +108,6 @@ public class Player implements Runnable, Closeable {
                     .mapOk(x -> player);
         } catch (IOException e) {
             return Result.error(new ServerError.ClientConnectError(e));
-        }
-    }
-
-    @Override
-    public void run() {
-        doHandshake();
-    }
-
-    @Override
-    public void close() throws IOException {
-        this.socket.close();
-    }
-
-    @Override
-    public String toString() {
-        return "Player { name: %s }".formatted(this.name);
-    }
-
-    // MOVE x y
-    public record Move(int x, int y) {
-        public static Move parse(String line) throws IllegalArgumentException {
-            var split = line.trim().split(" ");
-            int x, y;
-            try {
-                x = Integer.parseInt(split[1]);
-                y = Integer.parseInt(split[2]);
-            } catch (Exception e) {
-                throw new IllegalArgumentException(e.getMessage());
-            }
-            if (!(0 <= x && x < BOARD_WIDTH)) {
-                throw new IllegalArgumentException("x is out of bounds");
-            }
-            if (!(0 <= x && x < BOARD_WIDTH)) {
-                throw new IllegalArgumentException("y is out of bounds");
-            }
-            return new Move(x, y);
-        }
-
-        public String encode() {
-            return "MOVE %d %d".formatted(x, y);
         }
     }
 
@@ -164,12 +123,54 @@ public class Player implements Runnable, Closeable {
         }
     }
 
-    public Result<Boolean, ServerError> sendUpdate(Move m) {
+    public boolean hasLost() {
+        return !shipBoard.hasAliveShips();
+    }
+
+    public Result<Boolean, ServerError> sendBoardUpdate(Move m) {
         var isHit = shipBoard.registerHit(m.x(), m.y());
         writer.println("UPDATE");
         writer.println(shipBoard.toString());
         writer.println("END");
         return Result.ok(isHit);
+    }
+
+    public void sendResponse(boolean isHit) {
+        if (isHit) {
+            writer.println("HIT");
+        } else {
+            writer.println("MISS");
+        }
+    }
+
+    public Result<Void, ServerError> sendDefeat() {
+        writer.println("DEFEAT");
+        return Result.ok(null);
+    }
+
+    public Result<Void, ServerError> sendWin() {
+        writer.println("WIN");
+        return Result.ok(null);
+    }
+
+    public void sendAwaitMove() {
+        writer.println("AWAIT MOVE");
+    }
+
+
+    @Override
+    public void run() {
+        doHandshake();
+    }
+
+    @Override
+    public void close() throws IOException {
+        this.socket.close();
+    }
+
+    @Override
+    public String toString() {
+        return "Player { name: %s }".formatted(this.name);
     }
 
 }

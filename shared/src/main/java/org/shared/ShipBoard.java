@@ -4,12 +4,11 @@ import static org.shared.Constants.NUM_SHIPS;
 import static org.shared.Constants.BOARD_WIDTH;
 
 import static org.shared.Utils.printError;
+import static org.shared.Utils.promptInt;
 
 import java.util.Scanner;
 
 import org.shared.Ship.Orientation;
-
-import java.util.InputMismatchException;
 
 public class ShipBoard {
     private final Ship[] ships;
@@ -23,7 +22,7 @@ public class ShipBoard {
      * @param y coordinate
      * @return a boolean indicatin whether a ship was hit.
      */
-    private boolean registerHit(int x, int y) {
+    public boolean registerHit(int x, int y) {
         for (var ship : ships) {
             if (ship.registerHit(x, y))
                 return true;
@@ -46,25 +45,19 @@ public class ShipBoard {
 
     public Ship getShipAt(int x, int y) {
         for (var ship : ships) {
-            if (ship.isAt(x, y)) {
+            if (ship != null && ship.isAt(x, y)) {
                 return ship;
             }
         }
         return null;
     }
 
-    private static int promptInt(Scanner scanner, String prompt) {
-        while (true) {
-            System.out.print(prompt);
-            try {
-                var i = scanner.nextInt();
-                scanner.nextLine(); // remove remaining newline
-                return i;
-            } catch (InputMismatchException e) {
-                scanner.nextLine();
-                printError("Invalid input.");
-            }
+    public boolean hasAliveShips() {
+        for (var ship : ships) {
+            if (ship.isAlive())
+                return true;
         }
+        return false;
     }
 
     private static Ship.Orientation promptOrientation(Scanner scanner) {
@@ -175,7 +168,7 @@ public class ShipBoard {
         return board;
     }
 
-    public static ShipBoard fromUserInput(Scanner scanner) throws Exception {
+    public static ShipBoard fromUserInput(Scanner scanner) {
         while (true) {
             var board = new ShipBoard();
             for (int i = 0; i < NUM_SHIPS; i++) {
@@ -265,4 +258,5 @@ public class ShipBoard {
         }
         return boardStr.toString();
     }
+
 }

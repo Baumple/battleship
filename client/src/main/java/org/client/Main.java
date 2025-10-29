@@ -1,5 +1,7 @@
 package org.client;
 
+import static org.shared.Utils.printError;
+
 import java.io.IOException;
 import java.util.Scanner;
 import java.util.logging.Level;
@@ -7,7 +9,6 @@ import java.util.logging.Level;
 import org.client.errorhandling.ClientError;
 import org.client.errorhandling.ClientException;
 import org.shared.LOG;
-import org.shared.ShipBoard;
 
 class Main {
     public static void main(String[] args) {
@@ -21,8 +22,7 @@ class Main {
 
         try {
             var scanner = new Scanner(System.in);
-            var board = ShipBoard.fromUserInput(scanner);
-            var client = new GameClient(args[0], board);
+            var client = new GameClient(args[0]);
 
             client.start(scanner);
 
@@ -40,22 +40,26 @@ class Main {
     private static void handleException(ClientException e) {
         switch (e.error) {
             case ClientError.InitError i ->
-                e.printStackTrace();
+                i.e().printStackTrace();
 
-            case ClientError.InvalidHandshake i ->
+            case ClientError.InvalidHandshakeError() ->
                 System.err.println("Received invalid handshake.");
 
             case ClientError.ServerConnectError c ->
                 System.err.println("Could not connect to server: " + c.e().getMessage());
 
-            case ClientError.ExchangeError ex ->
-                System.err.println("Error while sending properties: " + ex.e().getMessage());
-
             case ClientError.UserIOError u ->
-                System.err.println("Error while reading user input from stdin" + u.e().getMessage());
+                System.err.println("Error while reading user input from stdin: " +
+                        u.e().getMessage());
 
             case ClientError.IOError i ->
                 System.err.println("Error while communicating with server: " + i.e().getMessage());
+
+            case ClientError.UnknownInstructionError u ->
+                printError("Received unknown instruction: '%s'".formatted(u.instruction()));
+
+            case ClientError.LostConnectionError() ->
+                printError("Lost connection to the server.");
         }
     }
 }
