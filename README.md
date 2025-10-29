@@ -1,4 +1,8 @@
 # Batteship
+## Execute project:
+- Server: `./gradlew :server:run --console=plain`
+- Client: `./gradlew :client:run --console=plain --args=<player name>`
+
 ## Klassendiagramm (beinhaltet nicht alle Klassen in org.shared)
 
 ```mermaid
