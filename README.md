@@ -340,8 +340,7 @@ sequenceDiagram
 Der andere Spieler muss lange warten.
 
 ### Zusatzaufgabe (noch nicht fertig)
-1. ggf. Timeout, Server wird geblockt/kann keine weiteren Clients annehmen
-2. ein neuer Spieler könnte Verbindungsprobleme bekommen/bzw vom server nicht
-   `accept`ed werden
-3. die Spieler könnten sich gleichzeitig verbinden, bzw. gleichzeitig ihren
-   Input eingeben, jedoch hätte das beim Spiel selbst keine größeren Vorteile
+1. ggf. Timeout, gegenspieler kann keinen input eingeben
+2. der Gegenspieler muss immer so lange warten, bis der Spieler mit seinem Zug fertig ist -> zieht das Spiel in die Länge
+3. gleichzeitig könnten gleichzeitig ihren Zug platzieren, ggf. auch spannender, wenn die Züge gleichzeitig ausgeführt werden
+4. 
