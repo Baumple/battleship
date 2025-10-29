@@ -29,7 +29,7 @@ public class Utils {
     public static void printColored(String msg, Color c) {
         System.out.print("\033[0;%dm".formatted(c.colorCode));
         System.out.println(msg);
-        System.out.print(msg + "\033[0m");
+        System.out.print("\033[0m");
     }
 
     public static void printColoredInformation(String msg, Color c) {
