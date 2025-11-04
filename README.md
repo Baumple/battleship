@@ -294,10 +294,10 @@ sequenceDiagram
     end
 
     activate GameServer
-        GameServer ->> Player2: sendAwaitMove()
+        GameServer -) Player2: sendAwaitMove()
     
-        Player2 ->> GameClient2: "AWAIT MOVE"
-        GameClient2 ->> Bob: print("Enemy's turn.")
+        Player2 -) GameClient2: "AWAIT MOVE"
+        GameClient2 -) Bob: print("Enemy's turn.")
     
         GameServer ->> Player1: getMove()
         activate Player1
@@ -310,33 +310,33 @@ sequenceDiagram
                 deactivate Alice
                 GameClient1 -->> Player1: Move
                 Player1 -->> GameServer: Move
-                GameServer ->> Player2: sendBoardUpdate(Move)
+                GameServer -) Player2: sendBoardUpdate(Move)
                 activate Player2
-                    Player2 ->> GameClient2: "UPDATE ..<board>.. END"
-                    GameClient2 ->> Bob : print updated board
+                    Player2 -) GameClient2: "UPDATE ..<board>.. END"
+                    GameClient2 -) Bob : print updated board
                     Player2 -->> GameServer: boolean isHit
                 deactivate Player2
 
-                GameClient1 -->> Player1: recieveMoveResult()
-                GameServer ->> Player1: sendResponse(isHit)
+                GameClient1 ->> Player1: recieveMoveResult()
+                GameServer -) Player1: sendResponse(isHit)
                 
-            Player1 ->> GameClient1: "HIT" | "MISS"
+            Player1 --) GameClient1: "HIT" | "MISS"
         deactivate Player1
 
-                GameClient1 ->> Alice: print result
+                GameClient1 -) Alice: print result
             deactivate GameClient1
 
         alt Player2 has lost
-            GameServer ->> Player1: sendWin()
-            Player1 ->> GameClient1: "WIN"        
-            GameClient1 ->> Alice: print win msg
+            GameServer -) Player1: sendWin()
+            Player1 -) GameClient1: "WIN"        
+            GameClient1 -) Alice: print win msg
 
-            GameServer ->> Player2: sendDefeat()
-            Player2 ->> GameClient2: "DEFEAT"
-            GameClient2 ->> Bob: print defeat msg
+            GameServer -) Player2: sendDefeat()
+            Player2 -) GameClient2: "DEFEAT"
+            GameClient2 -) Bob: print defeat msg
             
-            GameServer ->> Player1: disconnectPlayers()
-            GameServer ->> Player2: disconnectPlayers()
+            GameServer -) Player1: disconnectPlayers()
+            GameServer -) Player2: disconnectPlayers()
 
         end
     deactivate GameServer        
