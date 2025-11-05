@@ -36,7 +36,7 @@ public sealed interface Result<T, R> permits Result.Ok, Result.Error {
 
     @FunctionalInterface
     public interface Block<T> {
-        public T exec() throws Exception;
+        public T exec() throws Throwable;
     }
 
     default boolean isError() {
@@ -55,12 +55,17 @@ public sealed interface Result<T, R> permits Result.Ok, Result.Error {
     }
 
     default <S> Result<S, R> mapOk(Function<T, S> f) {
-        switch (this) {
-            case Result.Error<T, R> e:
-                return e.convert();
-            case Result.Ok<T, R> o:
-                return Result.ok(f.apply(o.value()));
-        }
+        return switch (this) {
+            case Result.Error(R error) -> Result.error(error);
+            case Result.Ok(T value) -> Result.ok(f.apply(value));
+        };
+    }
+
+    default <S> Result<T, S> mapError(Function<R, S> f) {
+        return switch (this) {
+            case Result.Error(R error) -> Result.error(f.apply(error));
+            case Result.Ok<T, R> o -> Result.ok(o.value());
+        };
     }
 
     static <T, R> Result<T, R> voidOk() {
@@ -76,10 +81,10 @@ public sealed interface Result<T, R> permits Result.Ok, Result.Error {
      *
      * @param b The function to be exectuted
      **/
-    static <T> Result<T, Exception> runCatching(Block<T> b) {
+    static <T> Result<T, Throwable> runCatching(Block<T> b) {
         try {
             return Result.ok(b.exec());
-        } catch (Exception e) {
+        } catch (Throwable e) {
             return Result.error(e);
         }
     }
@@ -108,6 +113,12 @@ public sealed interface Result<T, R> permits Result.Ok, Result.Error {
     default void ifError(Consumer<R> c) {
         if (this instanceof Result.Error<T, R> e) {
             c.accept(e.error());
+        }
+    }
+
+    default void ifOk(Consumer<T> c) {
+        if (this instanceof Result.Ok(T value)) {
+            c.accept(value);
         }
     }
 }

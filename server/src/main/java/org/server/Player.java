@@ -7,6 +7,8 @@ import java.io.InputStreamReader;
 import java.io.OutputStreamWriter;
 import java.io.PrintWriter;
 import java.net.Socket;
+import java.util.Queue;
+import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.logging.Level;
 
 import org.server.errorhandling.Result;
@@ -19,7 +21,7 @@ import org.shared.Move;
 /**
  * Handles connection with the player client
  */
-public class Player implements Runnable, Closeable {
+public class Player implements Closeable, Runnable {
     private String name;
 
     private final Socket socket;
@@ -27,6 +29,8 @@ public class Player implements Runnable, Closeable {
     private final PrintWriter writer;
 
     private ShipBoard shipBoard;
+
+    private ConcurrentLinkedQueue<Event> eventQueue;
 
     public String getName() {
         return name;
@@ -36,6 +40,7 @@ public class Player implements Runnable, Closeable {
         this.socket = socket;
         this.reader = new BufferedReader(new InputStreamReader(socket.getInputStream()));
         this.writer = new PrintWriter(new OutputStreamWriter(socket.getOutputStream()), true);
+        this.eventQueue = new ConcurrentLinkedQueue<>();
     }
 
     private Result<Void, ServerError> doHandshake() {
@@ -72,8 +77,6 @@ public class Player implements Runnable, Closeable {
         }
     }
 
-    // name
-    // ships
     private Result<Void, ServerError> readPlayerInfo() {
         try {
             LOG.debug(Level.INFO, "Exchanging game information.");
@@ -111,16 +114,15 @@ public class Player implements Runnable, Closeable {
         }
     }
 
-    public Result<Move, ServerError> getMove() {
-        try {
-            writer.println("SEND MOVE");
-            return Result.ok(Move.parse(reader.readLine()));
-        } catch (IOException e) {
-            return Result.error(new ServerError.IOError(e));
-        } catch (IllegalArgumentException e) {
-            writer.println("ERROR: Received invalid move");
-            return Result.error(new ServerError.InvalidMoveReceived(e));
-        }
+    public void sendAwaitingMove() {
+        writer.println("SEND MOVE");
+        Thread.ofVirtual().start(() -> {
+            try {
+                var line = reader.readLine();
+                Move.parse(line);
+            } catch (Exception e) {
+            }
+        });
     }
 
     public boolean hasLost() {
@@ -153,14 +155,26 @@ public class Player implements Runnable, Closeable {
         return Result.ok(null);
     }
 
-    public void sendAwaitMove() {
-        writer.println("AWAIT MOVE");
+    public synchronized Event pollEvent() {
+        return this.eventQueue.poll();
     }
 
+    private synchronized Result<String, ServerError> readLine() {
+        return Result.runCatching(this.reader::readLine)
+                .mapError(ex -> new ServerError.IOError((IOException) ex));
+    }
 
     @Override
     public void run() {
-        doHandshake();
+        while (true) {
+            var line = readLine();
+            switch (line) {
+                case Result.Ok(String value) ->
+                    eventQueue.offer(Event.parseEvent(value));
+                case Result.Error(ServerError error) ->
+                    eventQueue.offer(new Event.PlayerConnectionErrored(error));
+            }
+        }
     }
 
     @Override

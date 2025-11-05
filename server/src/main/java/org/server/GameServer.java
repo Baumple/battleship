@@ -3,18 +3,23 @@ package org.server;
 import java.io.Closeable;
 import java.io.IOException;
 import java.net.ServerSocket;
+import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.logging.Level;
 
 import org.server.errorhandling.Result;
 import org.server.errorhandling.ServerError;
 
 import org.shared.LOG;
+import org.shared.Move;
 
-public class GameServer implements Closeable {
+public class GameServer implements Closeable, Runnable {
     private ServerSocket socket;
 
     private Player player1;
     private Player player2;
+
+    public void run() {
+    }
 
     public Result<Void, ServerError> start() {
         var initRes = initialize();
@@ -50,31 +55,27 @@ public class GameServer implements Closeable {
         LOG.debug(Level.INFO, "Starting game.");
 
         while (true) {
-            var res = handleAttack(player1, player2);
-            if (res.isError())
-                return res;
-
-            if (player2.hasLost())
-                return handleGameEnd(player1, player2);
-
-            res = handleAttack(player2, player1);
+            var res = handleTurn();
             if (res.isError())
                 return res;
 
             if (player1.hasLost())
                 return handleGameEnd(player2, player1);
+            if (player2.hasLost())
+                return handleGameEnd(player1, player2);
+
         }
     }
 
-    private Result<Void, ServerError> handleAttack(Player attacker, Player defender) {
-        defender.sendAwaitMove();
-        return attacker.getMove()
-                .then(defender::sendBoardUpdate)
-                .mapOk(isHit -> {
-                    attacker.sendResponse(isHit.booleanValue());
-                    return null;
-                });
 
+    private Result<Void, ServerError> handleTurn() {
+        record Pair(Event e1, Event e2) {
+        }
+        if (player1.pollEvent() != null) {
+        }
+        if (player2.pollEvent() != null) {
+        }
+        player2.pollEvent();
     }
 
     private Result<Void, ServerError> handleGameEnd(Player winner, Player loser) {
@@ -90,7 +91,6 @@ public class GameServer implements Closeable {
         }
         return Result.ok(null);
     }
-
 
     private Result<Void, ServerError> connectPlayers() {
         LOG.debug(Level.INFO, "Waiting for player 1..");
