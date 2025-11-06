@@ -3,7 +3,8 @@ package org.server;
 import java.io.Closeable;
 import java.io.IOException;
 import java.net.ServerSocket;
-import java.util.concurrent.ConcurrentLinkedQueue;
+import java.util.concurrent.BlockingQueue;
+import java.util.concurrent.LinkedTransferQueue;
 import java.util.logging.Level;
 
 import org.server.errorhandling.Result;
@@ -18,8 +19,7 @@ public class GameServer implements Closeable, Runnable {
     private Player player1;
     private Player player2;
 
-    public void run() {
-    }
+    private BlockingQueue<Event> eventQueue;
 
     public Result<Void, ServerError> start() {
         var initRes = initialize();
@@ -51,6 +51,31 @@ public class GameServer implements Closeable, Runnable {
         return Result.ok(null);
     }
 
+    @Override
+    public void run() {
+        while (true) {
+            switch (Result.runCatching(eventQueue::take)) {
+                case Result.Error(InterruptedException e) -> {
+                    e.printStackTrace();
+                    System.exit(1);
+                }
+                case Result.Ok(Event e) -> handleEvent(e);
+                default -> {}
+            }
+        }
+    }
+
+    private void handleEvent(Event e) {
+        switch (e) {
+            case Event.PlayerSentMove(Move m) -> {
+            }
+            case Event.PlayerConnectionErrored(ServerError error) -> {
+            }
+            case Event.PlayerSentInvalidEvent(String msg) -> {
+            }
+        }
+    }
+
     private Result<Void, ServerError> gameLoop() {
         LOG.debug(Level.INFO, "Starting game.");
 
@@ -67,7 +92,6 @@ public class GameServer implements Closeable, Runnable {
         }
     }
 
-
     private Result<Void, ServerError> handleTurn() {
         record Pair(Event e1, Event e2) {
         }
@@ -76,6 +100,7 @@ public class GameServer implements Closeable, Runnable {
         if (player2.pollEvent() != null) {
         }
         player2.pollEvent();
+        return null;
     }
 
     private Result<Void, ServerError> handleGameEnd(Player winner, Player loser) {
@@ -86,6 +111,7 @@ public class GameServer implements Closeable, Runnable {
         try {
             socket = new ServerSocket(6969);
             socket.setSoTimeout(0);
+            eventQueue = new LinkedTransferQueue<>();
         } catch (IOException e) {
             return Result.error(new ServerError.InitError(e));
         }
@@ -96,7 +122,7 @@ public class GameServer implements Closeable, Runnable {
         LOG.debug(Level.INFO, "Waiting for player 1..");
         try {
             var s1 = socket.accept();
-            switch (Player.fromSocket(s1)) {
+            switch (Player.fromSocket(s1, eventQueue)) {
                 case Result.Error<Player, ServerError> e:
                     return e.convert();
                 case Result.Ok<Player, ServerError> player:
@@ -105,7 +131,7 @@ public class GameServer implements Closeable, Runnable {
             LOG.debug(Level.INFO, "Player 1 '%s' connected!".formatted(player1.getName()));
 
             var s2 = socket.accept();
-            switch (Player.fromSocket(s2)) {
+            switch (Player.fromSocket(s2, eventQueue)) {
                 case Result.Error<Player, ServerError> e:
                     return e.convert();
                 case Result.Ok<Player, ServerError> player:

@@ -90,23 +90,6 @@ public sealed interface Result<T, R> permits Result.Ok, Result.Error {
     }
 
     /**
-     * Takes a function which returns a value or throws an Exception.
-     *
-     * If an exception is thrown, it is caught and wrapped by the given map
-     * function and returns as Result.Error
-     *
-     * @param b   The function to be exectuted
-     * @param map The wrapping function
-     **/
-    static <T, R> Result<T, R> runErrorMapping(Block<T> b, Function<Exception, R> map) {
-        try {
-            return Result.ok(b.exec());
-        } catch (Exception e) {
-            return Result.error(map.apply(e));
-        }
-    }
-
-    /**
      * Takes a function which takes the error value of the Result.Error record as a
      * parameter and executes it, if the Result is an Error.
      **/

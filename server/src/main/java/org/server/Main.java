@@ -38,6 +38,7 @@ public class Main {
             case ServerError.IOError e ->
                 System.out.println("Communication error: "
                         + e.exception().getMessage());
+
             case ServerError.InvalidMoveReceived i ->
                 System.out.println("Received a invalid move from a client: "
                         + i.exception().getMessage());
