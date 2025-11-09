@@ -20,7 +20,7 @@ public class ShipBoard {
     /**
      * @param x coordinate
      * @param y coordinate
-     * @return a boolean indicatin whether a ship was hit.
+     * @return a boolean indicating whether a ship was hit.
      */
     public boolean registerHit(int x, int y) {
         for (var ship : ships) {

@@ -4,6 +4,7 @@ import org.client.errorhandling.*;
 
 import org.shared.ShipBoard;
 import org.shared.Move;
+import org.shared.Ship;
 import org.shared.LOG;
 
 import static org.shared.Utils.printError;
@@ -47,6 +48,13 @@ public class GameClient implements Closeable {
     public void start(Scanner scanner) throws ClientException {
         this.scanner = scanner;
         var board = ShipBoard.fromUserInput(scanner);
+        // ShipBoard.fromArray(new Ship[] {
+        // new Ship(0, 0, 1, Ship.Orientation.Horizontal),
+        // new Ship(0, 1, 2, Ship.Orientation.Horizontal),
+        // new Ship(0, 2, 3, Ship.Orientation.Horizontal),
+        // new Ship(0, 3, 4, Ship.Orientation.Horizontal),
+        // new Ship(0, 4, 5, Ship.Orientation.Horizontal),
+        // });
 
         connectToServer(board);
         System.out.println("Waiting for server to start the game.");
@@ -55,7 +63,7 @@ public class GameClient implements Closeable {
     }
 
     private void gameLoop() throws ClientException {
-        System.out.println("The game begins!");
+        System.out.println("Waiting for server..");
 
         while (true) {
             var instruction = readLineOrThrow();
@@ -64,16 +72,17 @@ public class GameClient implements Closeable {
                 return;
             }
             switch (instruction) {
-                case "UPDATE" ->
-                    handleUpdateBoard();
                 case "SEND MOVE" -> handleSendMove();
-                case "AWAIT MOVE" -> handleAwaitMove();
                 case "DEFEAT" -> {
                     handleDefeat();
                     return;
                 }
                 case "WIN" -> {
                     handleWin();
+                    return;
+                }
+                case "DRAW" -> {
+                    handleDraw();
                     return;
                 }
                 default -> {
@@ -84,16 +93,17 @@ public class GameClient implements Closeable {
         }
     }
 
-    private void handleDefeat() {
-        System.out.println("You have lost..");
+    private void handleDraw() {
+        printColored("It waws a draw.", Color.RED);
     }
 
-    private void handleAwaitMove() {
-        printColoredInformation("Enemy's turn.", Color.RED);
+    private void handleDefeat() {
+        printColored("You have lost..", Color.RED);
     }
 
     private void handleWin() {
-        System.out.println("You have won!!!");
+        printColored("You have won!!!", Color.GREEN);
+        System.out.println("");
     }
 
     private void handleSendMove() throws ClientException {
@@ -101,28 +111,46 @@ public class GameClient implements Closeable {
         writer.println(move.encode());
         MarkerBoard.Marker marker;
 
-        if (receiveMoveResult()) {
+        System.out.println("Waiting for a server response.");
+
+        if (receiveHasHit()) {
             printColored("You hit!!", Color.GREEN);
             marker = MarkerBoard.Marker.Hit;
         } else {
             printColored("You missed..", Color.RED);
             marker = MarkerBoard.Marker.Miss;
         }
+
+        showBoardUpdate();
+
         markerBoard.placeMarker(move.x(), move.y(), marker);
     }
 
-    private void handleUpdateBoard() throws ClientException {
+    private void showBoardUpdate() throws ClientException {
+        if (!readLineOrThrow().equals("UPDATE"))
+            System.exit(1);
         var boardStr = new StringBuilder();
         String line;
         while (!(line = readLineOrThrow()).equals("END"))
             boardStr.append(line + "\n");
 
-        printColoredInformation("Your board:", Color.GREEN);
+        printColoredInformation("Updated board:", Color.GREEN);
         System.out.println(boardStr.toString());
+
+        printColoredInformation("Press enter to continue.", Color.GREEN);
+        scanner.nextLine();
     }
 
-    private boolean receiveMoveResult() throws ClientException {
-        return readLineOrThrow().equals("HIT");
+    private boolean receiveHasHit() throws ClientException {
+        var line = readLineOrThrow();
+        if (line.equals("HIT"))
+            return true;
+        else if (line.equals("MISS"))
+            return false;
+
+        System.err.println("WTF: " + line);
+        System.exit(1);
+        return false;
     }
 
     private Move promptMove() {
@@ -178,7 +206,7 @@ public class GameClient implements Closeable {
                 }
             }
         }
-        performHandshake();
+        doHandshake();
 
         LOG.debug(Level.INFO, "Exchanging game information.");
         writer.println(name);
@@ -188,7 +216,7 @@ public class GameClient implements Closeable {
 
     }
 
-    private void performHandshake() throws ClientException {
+    private void doHandshake() throws ClientException {
         try {
             this.reader = new BufferedReader(new InputStreamReader(socket.getInputStream()));
             this.writer = new PrintWriter(

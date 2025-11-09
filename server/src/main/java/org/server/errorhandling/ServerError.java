@@ -2,23 +2,26 @@ package org.server.errorhandling;
 
 import java.io.IOException;
 
+import org.server.Player;
+
 /**
  * Various errors that may occur during server operation.
  *
  * @see InitError
  * @see IOError
- * @see ClientConnectError
- * @see ClientPropertyError
+ * @see PlayerConnectError
+ * @see PlayerPropertyError
  * @see InvalidHandshake
- * @see ClientPropertyError
+ * @see PlayerPropertyError
  */
 public sealed interface ServerError permits
         ServerError.InitError,
         ServerError.IOError,
-        ServerError.ClientConnectError,
-        ServerError.ClientPropertyError,
+        ServerError.PlayerConnectError,
+        ServerError.PlayerPropertyError,
         ServerError.InvalidHandshake,
-        ServerError.InvalidMoveReceived {
+        ServerError.InvalidMoveReceived,
+        ServerError.Interrupted {
 
     /**
      * Error that is returned when the ServerSocket failed to initialize.
@@ -38,7 +41,7 @@ public sealed interface ServerError permits
      * Error hat is returned when there was an error initializing
      * the client socket and reader/writer
      */
-    public record ClientConnectError(IOException exception)
+    public record PlayerConnectError(IOException exception)
             implements ServerError {
     }
 
@@ -46,7 +49,7 @@ public sealed interface ServerError permits
      * A property was missing/invalid during inital information exchange
      * between server and client.
      */
-    public record ClientPropertyError(String msg)
+    public record PlayerPropertyError(String msg)
             implements ServerError {
     }
 
@@ -57,8 +60,11 @@ public sealed interface ServerError permits
             implements ServerError {
     }
 
-    public record InvalidMoveReceived(IllegalArgumentException exception)
+    public record InvalidMoveReceived(IllegalArgumentException exception, Player from)
             implements ServerError {
+    }
+
+    public record Interrupted(InterruptedException e) implements ServerError {
     }
 
 }

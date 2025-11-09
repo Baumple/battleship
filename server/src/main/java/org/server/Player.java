@@ -21,14 +21,16 @@ import org.shared.Move;
  * Handles connection with the player client
  */
 public class Player implements Closeable, Runnable {
-    public static Result<Player, ServerError> fromSocket(Socket socket, BlockingQueue<Event> eventQueue) {
+    public static Result<Player, ServerError> fromSocket(
+            Socket socket,
+            BlockingQueue<Result<Event, ServerError>> eventQueue) {
         try {
             var player = new Player(socket, eventQueue);
             System.out.println("Created player object.");
             return player.connect()
                     .mapOk(x -> player);
         } catch (IOException e) {
-            return Result.error(new ServerError.ClientConnectError(e));
+            return Result.error(new ServerError.PlayerConnectError(e));
         }
     }
 
@@ -40,9 +42,20 @@ public class Player implements Closeable, Runnable {
 
     private ShipBoard shipBoard;
 
-    private BlockingQueue<Event> eventQueue;
+    private BlockingQueue<Result<Event, ServerError>> eventQueue;
+    /**
+     * A volatile boolean indicating whether the reading thread of the Player object
+     * should continue reading.
+     *
+     * Calling {@link Player.close} will set running to false and close the Socket
+     * and
+     * its i/o streams, thus shutting down the reading thread.
+     */
+    private volatile boolean running = false;
 
-    private Player(Socket socket, BlockingQueue<Event> eventQueue) throws IOException {
+    private Player(
+            Socket socket,
+            BlockingQueue<Result<Event, ServerError>> eventQueue) throws IOException {
         this.socket = socket;
         this.reader = new BufferedReader(new InputStreamReader(socket.getInputStream()));
         this.writer = new PrintWriter(new OutputStreamWriter(socket.getOutputStream()), true);
@@ -55,11 +68,17 @@ public class Player implements Closeable, Runnable {
 
     public Result<Void, ServerError> connect() {
         var res = doHandshake();
+
         if (res.isError())
             return res;
         System.out.println("Handshake ok");
 
-        return switch (readPlayerInfo()) {
+        var playerInfoRes = readPlayerInfo();
+
+        // leave reading to the reader thread now.
+        new Thread(this).start();
+
+        return switch (playerInfoRes) {
             case Result.Error<Void, ServerError> e -> e;
             case Result.Ok<Void, ServerError> o -> o;
         };
@@ -67,43 +86,38 @@ public class Player implements Closeable, Runnable {
 
     public void sendAwaitingMove() {
         writer.println("SEND MOVE");
-        Thread.ofVirtual().start(() -> {
-            try {
-                var line = reader.readLine();
-                Move.parse(line);
-            } catch (Exception e) {
-            }
-        });
     }
 
     public boolean hasLost() {
         return !shipBoard.hasAliveShips();
     }
 
-    public Result<Boolean, ServerError> sendBoardUpdate(Move m) {
+    public boolean registerHit(Move m) {
         var isHit = shipBoard.registerHit(m.x(), m.y());
-        writer.println("UPDATE");
-        writer.println(shipBoard.toString());
-        writer.println("END");
-        return Result.ok(isHit);
+        return isHit;
     }
 
-    public void sendResponse(boolean isHit) {
+    public void sendTurnResult(boolean isHit) {
         if (isHit) {
             writer.println("HIT");
         } else {
             writer.println("MISS");
         }
+        writer.println("UPDATE");
+        writer.println(shipBoard.toString());
+        writer.println("END");
     }
 
-    public Result<Void, ServerError> sendDefeat() {
+    public void sendDefeat() {
         writer.println("DEFEAT");
-        return Result.ok(null);
     }
 
-    public Result<Void, ServerError> sendWin() {
+    public void sendWin() {
         writer.println("WIN");
-        return Result.ok(null);
+    }
+
+    public void sendDraw() {
+        writer.println("DRAW");
     }
 
     /**
@@ -113,23 +127,25 @@ public class Player implements Closeable, Runnable {
      */
     @Override
     public void run() {
-        while (true) {
+        running = true;
+        LOG.debug(Level.INFO, "Starting player thread.");
+        while (running) {
             var line = readLine();
             switch (line) {
-                case Result.Ok(String value) ->
-                    eventQueue.offer(Event.parseEvent(value));
+                case Result.Ok(String value) -> {
+                    if (value != null)
+                        eventQueue.offer(Event.parseEvent(this, value));
+                }
                 case Result.Error(ServerError error) ->
-                    eventQueue.offer(new Event.PlayerConnectionErrored(error));
+                    eventQueue.offer(Result.error(error));
             }
         }
-    }
-
-    public synchronized Event pollEvent() {
-        return this.eventQueue.poll();
+        LOG.debug(Level.INFO, "Shutting down player thread.");
     }
 
     @Override
-    public void close() throws IOException {
+    public synchronized void close() throws IOException {
+        this.running = false;
         this.socket.close();
     }
 
@@ -175,7 +191,7 @@ public class Player implements Closeable, Runnable {
             return Result.error(new ServerError.IOError(e));
         } catch (IllegalArgumentException e) {
             return Result
-                    .error(new ServerError.ClientPropertyError(
+                    .error(new ServerError.PlayerPropertyError(
                             "Invalid ship placement: " + e.getMessage().toString()));
         }
 

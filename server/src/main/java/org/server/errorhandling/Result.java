@@ -104,4 +104,5 @@ public sealed interface Result<T, R> permits Result.Ok, Result.Error {
             c.accept(value);
         }
     }
+
 }

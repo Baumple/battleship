@@ -2,32 +2,21 @@ package org.server;
 
 import org.shared.Move;
 
+import org.server.errorhandling.Result;
 import org.server.errorhandling.ServerError;
 
 public sealed interface Event permits
-        Event.PlayerSentMove,
-        Event.PlayerConnectionErrored,
-        Event.PlayerSentInvalidEvent {
+        Event.PlayerSentMove {
 
-    public record PlayerSentMove(Move m) implements Event {
+    public record PlayerSentMove(Player p, Move m) implements Event {
     }
 
-    public record PlayerConnectionErrored(ServerError error) implements Event {
-    }
-
-    public record PlayerSentInvalidEvent(String msg) implements Event {
-    }
-
-    public static Event parseEvent(String line) {
-        if (line.startsWith("MOVE")) {
-            try {
-                return new Event.PlayerSentMove(Move.parse(line));
-            } catch (IllegalArgumentException e) {
-                return new Event.PlayerSentInvalidEvent(e.getMessage());
-            }
+    public static Result<Event, ServerError> parseEvent(Player p, String line) {
+        try {
+            return Result.ok(new Event.PlayerSentMove(p, Move.parse(line)));
+        } catch (IllegalArgumentException e) {
+            return Result.error(new ServerError.InvalidMoveReceived(e, p));
         }
-        return new Event.PlayerSentInvalidEvent(
-                "Received unknown event `%s`".formatted(line));
     }
 
 }
