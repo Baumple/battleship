@@ -118,7 +118,7 @@ public class GameServer implements Closeable {
         while (true) {
             handleTurn();
             if (player1.hasLost() && player2.hasLost())
-                return handleGameEndDraw();
+                return handleGameDraw();
             if (player1.hasLost())
                 return handleGameEnd(player2, player1);
             if (player2.hasLost())
@@ -127,9 +127,14 @@ public class GameServer implements Closeable {
     }
 
     private Result<Void, ServerError> handleGameEnd(Player winner, Player loser) {
-        return winner.sendWin().then(x -> loser.sendDefeat());
+        winner.sendWin();
+        loser.sendDefeat();
+        return Result.ok(null);
     }
     private Result<Void, ServerError> handleGameDraw() {
+        player1.sendDraw();
+        player2.sendDraw();
+        return Result.ok(null);
     }
 
     private Result<Void, ServerError> initialize() {

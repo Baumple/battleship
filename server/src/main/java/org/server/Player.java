@@ -108,8 +108,9 @@ public class Player implements Closeable, Runnable {
         writer.println("END");
     }
 
-    public void sendDefeat() {
+    public Void sendDefeat() {
         writer.println("DEFEAT");
+        return null;
     }
 
     public void sendWin() {
