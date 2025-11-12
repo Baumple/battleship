@@ -94,8 +94,6 @@ classDiagram
         }
     }
 
-
-
     namespace org.client.errorhandling {
         class ClientError ["sealed interface ClientError"]
         class InitError ["record ClientError.InitError"] {
@@ -347,6 +345,7 @@ Der andere Spieler muss lange warten.
 
 ### Zusatzaufgabe (noch nicht fertig)
 1. ggf. Timeout, gegenspieler kann keinen input eingeben
-2. der Gegenspieler muss immer so lange warten, bis der Spieler mit seinem Zug fertig ist -> zieht das Spiel in die Länge
-3. gleichzeitig könnten gleichzeitig ihren Zug platzieren, ggf. auch spannender, wenn die Züge gleichzeitig ausgeführt werden
-4. 
+2. der Spieler muss immer so lange warten, bis der Gegenspieler mit seinem Zug
+   fertig ist -> zieht das Spiel in die Länge
+3. gleichzeitig könnten gleichzeitig ihren Zug platzieren, ggf. auch
+   spannender, wenn die Züge gleichzeitig ausgeführt werden

@@ -5,6 +5,7 @@ import org.shared.Move;
 import org.server.errorhandling.Result;
 import org.server.errorhandling.ServerError;
 
+// TODO: Allow more events (player surrenders, etc.)
 public sealed interface Event permits
         Event.PlayerSentMove {
 
