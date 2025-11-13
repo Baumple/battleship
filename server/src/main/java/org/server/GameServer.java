@@ -4,6 +4,7 @@ import java.io.Closeable;
 import java.io.IOException;
 import java.net.ServerSocket;
 import java.util.concurrent.BlockingQueue;
+import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.LinkedTransferQueue;
 import java.util.logging.Level;
 
@@ -141,7 +142,7 @@ public class GameServer implements Closeable {
         try {
             socket = new ServerSocket(6969);
             socket.setSoTimeout(0);
-            eventQueue = new LinkedTransferQueue<>();
+            eventQueue = new LinkedBlockingQueue<>();
         } catch (IOException e) {
             return Result.error(new ServerError.InitError(e));
         }
